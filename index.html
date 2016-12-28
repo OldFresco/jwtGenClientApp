@@ -1,0 +1,159 @@
+<html>
+
+<head>
+    <style>
+        body {
+            text-align: center;
+            background: #00ECB9;
+            font-family: sans-serif;
+            font-weight: 100;
+        }
+        
+        h1 {
+            color: #396;
+            font-weight: 100;
+            font-size: 40px;
+            margin: 40px 0px 20px;
+        }
+        
+        #clockdiv {
+            padding-top: 3%;
+            font-family: sans-serif;
+            color: #fff;
+            display: inline-block;
+            font-weight: 100;
+            text-align: center;
+            font-size: 30px;
+        }
+        
+        #clockdiv>div {
+            padding: 10px;
+            border-radius: 3px;
+            background: #00BF96;
+            display: inline-block;
+        }
+        
+        #clockdiv div>span {
+            padding: 15px;
+            border-radius: 3px;
+            background: #00816A;
+            display: inline-block;
+        }
+        
+        .smalltext {
+            padding-top: 5px;
+            font-size: 16px;
+        }
+    </style>
+    <title>Self Serve Token Generator</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/clipboard.js/1.5.16/clipboard.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <div class="vertical-center-row" style="padding-top: 26%; padding-right: 18%;">
+            <div align="center">
+                <form class="form-horizontal">
+                    <div class="form-group">
+                        <label class="col-sm-2 control-label">Token: </label>
+                        <div class="col-sm-10">
+                            <input id="token-field" class="form-control" id="focusedInput" type="text" value="" readonly>
+                            <div style="padding-top: 5%;">
+                                <button id="copy-button" class="btn btn-success" data-clipboard-target="#token-field"> Copy to clipboard </button>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div id="clockdiv" style="padding-right: 4%;">
+            <div>
+                <span class="minutes"></span>
+                <div class="smalltext">Minutes</div>
+            </div>
+            <div>
+                <span class="seconds"></span>
+                <div class="smalltext">Seconds</div>
+            </div>
+        </div>
+    </div>
+</body>
+<script src="https://cdn.auth0.com/js/lock/10.6.1/lock.min.js"></script>
+<script>
+    window.onbeforeunload = function (e) {
+        localStorage.removeItem('idToken');
+    };
+
+    function getTimeRemaining(endtime) {
+        var t = Date.parse(endtime) - Date.parse(new Date());
+        var seconds = Math.floor((t / 1000) % 60);
+        var minutes = Math.floor((t / 1000 / 60) % 60);
+        var hours = Math.floor((t / (1000 * 60 * 60)) % 24);
+        var days = Math.floor(t / (1000 * 60 * 60 * 24));
+        return {
+            'total': t,
+            'days': days,
+            'hours': hours,
+            'minutes': minutes,
+            'seconds': seconds
+        };
+    }
+
+    function initializeClock(id, endtime) {
+        var clock = document.getElementById(id);
+        var minutesSpan = clock.querySelector('.minutes');
+        var secondsSpan = clock.querySelector('.seconds');
+
+        function updateClock() {
+            var t = getTimeRemaining(endtime);
+            minutesSpan.innerHTML = ('0' + t.minutes).slice(-2);
+            secondsSpan.innerHTML = ('0' + t.seconds).slice(-2);
+
+            if (t.total <= 0) {
+                clearInterval(timeinterval);
+            }
+        }
+
+        updateClock();
+        var timeinterval = setInterval(updateClock, 1000);
+    }
+
+    var lock = new Auth0Lock(
+        "6K7k0CAuduHmOuEV3CKrkz405gxi0pOv",
+        "likelyloans.eu.auth0.com", {
+            rememberLastLogin: false,
+            theme: {},
+            languageDictionary: {
+                "title": "Auth0"
+            },
+            language: "en",
+            autoclose: true
+        }
+    );
+
+    if (localStorage.getItem('idToken')) {
+        document.getElementById("token-field").value = localStorage.getItem('idToken');
+    } else {
+        if (window.location.hash == '' ) lock.show();
+    }
+
+    lock.on("authenticated", function (authResult) {
+        lock.getProfile(authResult.idToken, function (error, profile) {
+            if (error) {
+                return;
+            }
+            localStorage.setItem('idToken', authResult.idToken);
+            document.getElementById("token-field").value = authResult.idToken;
+
+            var deadline = new Date(Date.parse(new Date()) + 10 * 60 * 1000);
+            initializeClock('clockdiv', deadline);
+        });
+    });
+
+    (function () {
+        new Clipboard('#copy-button');
+    })();
+</script>
+
+</html>
